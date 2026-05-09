@@ -19,6 +19,7 @@ const KEY_STORE = {
   groq:      'fv8_key_groq',
   gemini:    'fv8_key_gemini',
   huggingface:'fv8_key_huggingface',
+  mistral:   'fv8_key_mistral',
   together:  'fv8_key_together',
 };
 const CFG_STORE  = 'fv8_cfg';
@@ -43,7 +44,7 @@ function saveConfig() {
   const cfg = {};
   // Non-key fields
   ['cfg_pol_model','cfg_pol_seed','cfg_or_model','cfg_groq_model',
-   'cfg_gem_model','cfg_hf_model','cfg_tog_model','cfg_lang','cfg_prompt',
+   'cfg_gem_model','cfg_mistral_model','cfg_hf_model','cfg_tog_model','cfg_lang','cfg_prompt',
    'cfg_json','cfg_path','cfg_naming','cfg_pattern','cfg_concurrent',
    'cfg_retries','cfg_bgMode','cfg_outRule'].forEach(id => {
     const el = document.getElementById(id);
@@ -77,7 +78,7 @@ function loadConfig() {
 // ─────────────────────────────────────────
 const KEY_FIELDS = {
   openrouter:'cfg_or_key', groq:'cfg_groq_key',
-  gemini:'cfg_gem_key', huggingface:'cfg_hf_key', together:'cfg_tog_key',
+  gemini:'cfg_gem_key', mistral:'cfg_mistral_key', huggingface:'cfg_hf_key', together:'cfg_tog_key',
 };
 
 function saveKey(provider, fieldId) {
@@ -131,6 +132,7 @@ const PROVIDER_NAMES = {
   openrouter:'🔀 OpenRouter',
   groq:'⚡ Groq',
   gemini:'✨ Gemini',
+  mistral: '🍃 Mistral',
   huggingface:'🤗 HuggingFace',
   together:'🤝 Together AI',
 };
@@ -423,57 +425,102 @@ async function startWorkflow(){
 }
 
 async function processAll(){
-  const n=parseInt(document.getElementById('cfg_concurrent').value);
-  for(let i=0;i<filesData.length;i+=n){
+  const batchSize=parseInt(document.getElementById('cfg_concurrent').value);
+  for(let i=0;i<filesData.length;i+=batchSize){
     if(isStopped) break;
     while(isPaused&&!isStopped) await sleep(500);
     if(isStopped) break;
     currentBatchIndex=i;
-    const batch=filesData.slice(i,i+n).filter(f=>f.status!=='done');
-    if(batch.length) await Promise.all(batch.map(item=>processFile(item)));
+    const batch=filesData.slice(i,i+batchSize).filter(f=>f.status!=='done');
+    if(batch.length) await processBatch(batch);
   }
 }
 
+async function processBatch(batch){
+  // Process individual files in the batch concurrently
+  await Promise.all(batch.map(item => processFile(item)));
+}
+
 async function processFile(item){
-  const retries=parseInt(document.getElementById('cfg_retries').value);
-  let attempts=0;
-  while(attempts<=retries){
+  const retries = parseInt(document.getElementById('cfg_retries').value) || 0;
+  let attempts = 0;
+
+  while(attempts <= retries) {
     if(isStopped) return;
-    while(isPaused&&!isStopped) await sleep(500);
+    while(isPaused && !isStopped) await sleep(500);
     if(isStopped) return;
-    try{
-      item.status='processing'; updateStats(); renderGrid();
-      setCardProgress(item.id,0,'بدء','');
-      document.getElementById('curTaskText').textContent=`معالجة: ${item.file.name}`;
-      setCardProgress(item.id,10,'قراءة','تحميل الصورة...');
-      const b64=await readAsBase64(item.file,p=>setCardProgress(item.id,10+p*.2,'قراءة',Math.round(p)+'%'));
+
+    try {
+      item.status = 'processing'; updateStats(); renderGrid();
+      setCardProgress(item.id, 5, 'قراءة', 'تحميل...');
+      const b64 = await readAsBase64(item.file, p=>setCardProgress(item.id, 5+p*0.1, 'قراءة', Math.round(p)+'%'));
       if(isStopped) return;
-      setCardProgress(item.id,30,'تحليل','إرسال للـ AI...');
-      const result=await callAI(b64,(p,s)=>setCardProgress(item.id,30+p*.6,'تحليل',s));
-      if(isStopped) return;
-      setCardProgress(item.id,95,'إنهاء','');
-      const finalData=buildFinalData(item.file,result,filesData.indexOf(item));
-      item.result=finalData; item.status='done'; globalResults.push(finalData);
-      setCardProgress(item.id,100,'اكتمل','✓');
-      setTimeout(()=>hideCardOverlay(item.id),800);
-      log(`✓ ${item.file.name}`,'success'); updateStats(); renderGrid();
+
+      setCardProgress(item.id, 30, 'تحليل', 'إرسال للـ AI...');
+      document.getElementById('curTaskText').textContent=`تحليل: ${item.file.name}`;
+
+      const modelMap = {
+        pollinations: 'cfg_pol_model',
+        openrouter: 'cfg_or_model',
+        gemini: 'cfg_gem_model',
+        groq: 'cfg_groq_model',
+        mistral: 'cfg_mistral_model',
+        huggingface: 'cfg_hf_model',
+        together: 'cfg_tog_model'
+      };
+
+      const payload = {
+        provider: currentProvider,
+        model: document.getElementById(modelMap[currentProvider])?.value,
+        apiKey: getKey(currentProvider),
+        prompt: buildPrompt(),
+        structure: buildStructureForAI(),
+        image: b64,
+        id: item.id
+      };
+
+      if(currentProvider==='pollinations') payload.seed = document.getElementById('cfg_pol_seed').value;
+
+      const response = await fetch('api/v2/process.php', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {'Content-Type': 'application/json'}
+      });
+
+      if(!response.ok) {
+        const errTxt = await response.text();
+        throw new Error(errTxt || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if(data.error) throw new Error(data.error);
+
+      const finalData = buildFinalData(item.file, data.result, filesData.indexOf(item));
+      item.result = finalData; item.status = 'done';
+      globalResults.push(finalData);
+      setCardProgress(item.id, 100, 'اكتمل', '✓');
+      setTimeout(()=>hideCardOverlay(item.id), 800);
+      log(`✓ ${item.file.name}`, 'success');
+      updateStats(); renderGrid();
       return;
-    }catch(err){
+
+    } catch(err) {
       attempts++;
       if(isStopped) return;
-      if(attempts<=retries){
-        log(`⚠ محاولة ${attempts}/${retries} — ${item.file.name}: ${err.message}`,'warning');
-        setCardProgress(item.id,50,'إعادة',`محاولة ${attempts+1}...`);
+      if(attempts <= retries) {
+        log(`⚠ محاولة ${attempts}/${retries} — ${item.file.name}: ${err.message}`, 'warning');
+        setCardProgress(item.id, 50, 'إعادة', `محاولة ${attempts+1}...`);
         await sleep(2000);
-      }else{
-        item.status='error'; item.error=err.message;
-        setCardProgress(item.id,100,'فشل',err.message.slice(0,30));
-        log(`✗ ${item.file.name}: ${err.message}`,'error');
+      } else {
+        item.status = 'error'; item.error = err.message;
+        setCardProgress(item.id, 100, 'فشل', err.message.slice(0, 30));
+        log(`✗ ${item.file.name}: ${err.message}`, 'error');
         updateStats(); renderGrid();
       }
     }
   }
 }
+
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
@@ -583,215 +630,42 @@ async function testConnection(){
   try{
     const c=document.createElement('canvas'); c.width=8;c.height=8;
     const ctx=c.getContext('2d'); ctx.fillStyle='#ccc'; ctx.fillRect(0,0,8,8);
-    await callAI(c.toDataURL('image/png'),()=>{});
+    const b64 = c.toDataURL('image/png');
+
+    const modelMap = {
+      pollinations: 'cfg_pol_model',
+      openrouter: 'cfg_or_model',
+      gemini: 'cfg_gem_model',
+      groq: 'cfg_groq_model',
+      mistral: 'cfg_mistral_model',
+      huggingface: 'cfg_hf_model',
+      together: 'cfg_tog_model'
+    };
+
+    const payload = {
+      provider: currentProvider,
+      model: document.getElementById(modelMap[currentProvider])?.value,
+      apiKey: getKey(currentProvider),
+      prompt: 'Test connection. Return {"status":"ok"}',
+      structure: '{"status":"string"}',
+      image: b64,
+      id: 'test'
+    };
+
+    const response = await fetch('api/v2/process.php', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {'Content-Type': 'application/json'}
+    });
+
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+
     showNotification('نجح الاتصال',`${PROVIDER_NAMES[currentProvider]} يعمل ✓`,'success');
     log('نجح الاتصال','success');
   }catch(e){
     showNotification('فشل الاتصال',e.message,'error');
     log('فشل: '+e.message,'error');
   }
-}
-
-// ── 1. POLLINATIONS.AI (100% FREE, No Key) ──────────────────────────────────
-async function callPollinations(b64, onProgress){
-  const model = document.getElementById('cfg_pol_model').value || 'openai';
-  const seed  = document.getElementById('cfg_pol_seed').value || '';
-  const prompt = buildPrompt();
-  const struct = buildStructureForAI();
-
-  // ضع مفتاحك هنا أو من config
-  const API_KEY = document.getElementById('cfg_pol_key')?.value || 'sk_MaTlSFUyKRob2VijGwZNKuI35DTWbRl5';
-
-  onProgress(15,'Pollinations — إرسال...');
-
-  // Build clean base64 data URL
-  const imgUrl = b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`;
-
-  const body = {
-    model,
-    messages:[{
-      role:'user',
-      content:[
-        {
-          type:'text',
-          text:`${prompt}\n\nأعد JSON فقط بهذا الهيكل بالضبط، بدون أي نص آخر:\n${struct}`
-        },
-        {
-          type:'image_url',
-          image_url:{ url: imgUrl }
-        }
-      ]
-    }],
-    max_tokens:2000,
-    temperature:0.3,
-    ...(seed ? {seed:parseInt(seed)} : {})
-  };
-
-  const response = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
-    method:'POST',
-    headers:{
-      'Authorization': `Bearer ${API_KEY}`,
-      'Content-Type':'application/json'
-    },
-    body:JSON.stringify(body)
-  });
-
-  onProgress(80,'Pollinations — معالجة...');
-
-  if(!response.ok){
-    let msg=`HTTP ${response.status}`;
-    try{
-      const e=await response.json();
-      msg=e.error?.message || JSON.stringify(e);
-    }catch(ex){}
-    throw new Error(`Pollinations: ${msg}`);
-  }
-
-  const data = await response.json();
-
-  // نفس تنسيق OpenAI الجديد
-  const text = data.choices?.[0]?.message?.content || '';
-  if(!text) throw new Error('Pollinations: لا يوجد محتوى في الرد');
-
-  return extractJSON(text);
-}
-
-// ── 2. OPENROUTER (Free models available) ───────────────────────────────────
-async function callOpenRouter(b64, onProgress){
-  const model=document.getElementById('cfg_or_model').value;
-  const key=getKey('openrouter');
-  const prompt=buildPrompt();
-  const struct=buildStructureForAI();
-
-  onProgress(20,'OpenRouter — إرسال...');
-
-  const headers={'Content-Type':'application/json','HTTP-Referer':'https://famelo.ai','X-Title':'Famelo v8'};
-  if(key) headers['Authorization']=`Bearer ${key}`;
-
-  const response=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-    method:'POST',headers,
-    body:JSON.stringify({
-      model,
-      messages:[{role:'user',content:[
-        {type:'text',text:`${prompt}\n\nأعد JSON فقط:\n${struct}`},
-        {type:'image_url',image_url:{url:b64}}
-      ]}],
-      max_tokens:2000,temperature:0.3
-    })
-  });
-
-  onProgress(80,'OpenRouter — معالجة...');
-  if(!response.ok){let e=`HTTP ${response.status}`;try{const r=await response.json();e=r.error?.message||JSON.stringify(r);}catch(ex){}throw new Error('OpenRouter: '+e);}
-  const data=await response.json();
-  return extractJSON(data.choices?.[0]?.message?.content||'');
-}
-
-// ── 3. GEMINI ────────────────────────────────────────────────────────────────
-async function callGemini(b64, onProgress){
-  const key=getKey('gemini');
-  if(!key) throw new Error('مفتاح Gemini API مطلوب');
-  const model=document.getElementById('cfg_gem_model').value;
-  const prompt=buildPrompt();
-  const struct=buildStructureForAI();
-
-  return new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest();
-    xhr.open('POST',`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`);
-    xhr.setRequestHeader('Content-Type','application/json');
-    xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(e.loaded/e.total*50,'Gemini — رفع...');};
-    xhr.onloadstart=()=>onProgress(55,'Gemini — تحليل...');
-    xhr.onload=()=>{
-      if(xhr.status>=200&&xhr.status<300){
-        try{
-          const res=JSON.parse(xhr.responseText);
-          if(res.error) throw new Error(res.error.message);
-          resolve(extractJSON(res.candidates[0].content.parts[0].text));
-        }catch(e){reject(new Error('Gemini parse: '+e.message));}
-      }else{
-        let msg=`HTTP ${xhr.status}`;
-        try{const r=JSON.parse(xhr.responseText);msg=r.error?.message||msg;}catch(ex){}
-        reject(new Error('Gemini: '+msg));
-      }
-    };
-    xhr.onerror=()=>reject(new Error('Gemini: خطأ شبكة'));
-    xhr.send(JSON.stringify({contents:[{parts:[
-      {text:`${prompt}\n\nأعد JSON فقط:\n${struct}`},
-      {inline_data:{mime_type:'image/jpeg',data:b64.split(',')[1]}}
-    ]}]}));
-  });
-}
-
-// ── 4. GROQ ───────────────────────────────────────────────────────────────────
-async function callGroq(b64, onProgress){
-  const key=getKey('groq');
-  if(!key) throw new Error('مفتاح Groq API مطلوب');
-  const model=document.getElementById('cfg_groq_model').value;
-  const prompt=buildPrompt();
-  const struct=buildStructureForAI();
-
-  onProgress(25,'Groq — إرسال...');
-  const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-    method:'POST',
-    headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
-    body:JSON.stringify({model,messages:[{role:'user',content:[
-      {type:'text',text:`${prompt}\n\nأعد JSON فقط:\n${struct}`},
-      {type:'image_url',image_url:{url:b64}}
-    ]}],max_tokens:2000,temperature:0.3})
-  });
-  onProgress(80,'Groq — معالجة...');
-  if(!res.ok){const e=await res.text();throw new Error('Groq: '+e);}
-  const data=await res.json();
-  return extractJSON(data.choices[0].message.content);
-}
-
-// ── 5. HUGGINGFACE ────────────────────────────────────────────────────────────
-async function callHuggingFace(b64, onProgress){
-  const key=getKey('huggingface');
-  if(!key) throw new Error('مفتاح HuggingFace API مطلوب');
-  const model=document.getElementById('cfg_hf_model').value;
-  const prompt=buildPrompt();
-  const struct=buildStructureForAI();
-  onProgress(20,'HuggingFace — إرسال...');
-  const cleanB64=b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`;
-  const res=await fetch(`https://api-inference.huggingface.co/models/${model}/v1/chat/completions`,{
-    method:'POST',
-    headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
-    body:JSON.stringify({model,messages:[{role:'user',content:[
-      {type:'text',text:`${prompt}\n\nأجب بـ JSON فقط:\n${struct}`},
-      {type:'image_url',image_url:{url:cleanB64}}
-    ]}],max_tokens:2000})
-  });
-  onProgress(80,'HuggingFace — معالجة...');
-  if(!res.ok){
-    const ed=await res.json();
-    const em=ed.error||JSON.stringify(ed);
-    if(em.includes('loading')) throw new Error('النموذج يُحمَّل — انتظر 30 ثانية وأعد المحاولة');
-    throw new Error('HuggingFace: '+em);
-  }
-  const data=await res.json();
-  return extractJSON(data.choices?.[0]?.message?.content||'');
-}
-
-// ── 6. TOGETHER AI ─────────────────────────────────────────────────────────
-async function callTogether(b64, onProgress){
-  const key=getKey('together');
-  if(!key) throw new Error('مفتاح Together AI مطلوب');
-  const model=document.getElementById('cfg_tog_model').value;
-  const prompt=buildPrompt();
-  const struct=buildStructureForAI();
-  onProgress(25,'Together — إرسال...');
-  const res=await fetch('https://api.together.xyz/v1/chat/completions',{
-    method:'POST',
-    headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
-    body:JSON.stringify({model,messages:[{role:'user',content:[
-      {type:'text',text:`${prompt}\n\nأعد JSON فقط:\n${struct}`},
-      {type:'image_url',image_url:{url:b64}}
-    ]}],max_tokens:2000,temperature:0.3})
-  });
-  onProgress(80,'Together — معالجة...');
-  if(!res.ok){const e=await res.text();throw new Error('Together: '+e);}
-  const data=await res.json();
-  return extractJSON(data.choices[0].message.content);
 }
 
 // ─────────────────────────────────────────
