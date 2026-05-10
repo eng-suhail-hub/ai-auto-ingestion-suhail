@@ -3,431 +3,226 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suhail v8 | AI Image Ingestion Pro</title>
+<title>Suhail v8 Pro | AI Analytics Dashboard</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body class="pro-theme">
 
 <div class="notif-container" id="notifContainer"></div>
-<button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-sliders-h"></i></button>
-<div class="overlay-bg" onclick="toggleSidebar()"></div>
 
 <!-- ══════════════════════════════════
-     SIDEBAR
+     SIDE NAVIGATION
 ══════════════════════════════════ -->
-<aside class="sidebar" id="sidebar">
-  <div class="sb-head">
-    <div class="sb-logo">
-      <div class="sb-logo-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
-      <div class="sb-logo-text">
-        <h1>Famelo v8</h1>
-        <p>AI Image Ingestion Pro</p>
-      </div>
-    </div>
+<nav class="side-nav">
+  <div class="nav-logo">
+    <i class="fas fa-microchip"></i>
+    <span>Suhail Pro</span>
   </div>
-
-  <div class="sb-body">
-
-    <!-- AI PROVIDER -->
-    <div class="sec-label"><i class="fas fa-robot"></i> مزود الذكاء الاصطناعي</div>
-
-    <div class="provider-select-wrap" id="providerGrid">
-      <button class="prov-btn active" data-prov="pollinations" onclick="selectProvider('pollinations')">
-        <span class="pb-icon">🌸</span>
-        <span class="pb-name">Pollinations</span>
-        <span class="pb-badge free-b">مجاني</span>
-      </button>
-      <button class="prov-btn" data-prov="openrouter" onclick="selectProvider('openrouter')">
-        <span class="pb-icon">🔀</span>
-        <span class="pb-name">OpenRouter</span>
-        <span class="pb-badge free-b">مجاني</span>
-      </button>
-      <button class="prov-btn" data-prov="groq" onclick="selectProvider('groq')">
-        <span class="pb-icon">⚡</span>
-        <span class="pb-name">Groq</span>
-        <span class="pb-badge free-b">مجاني</span>
-      </button>
-      <button class="prov-btn" data-prov="gemini" onclick="selectProvider('gemini')">
-        <span class="pb-icon">✨</span>
-        <span class="pb-name">Gemini</span>
-        <span class="pb-badge paid-b">مدفوع</span>
-      </button>
-      <button class="prov-btn" data-prov="huggingface" onclick="selectProvider('huggingface')">
-        <span class="pb-icon">🤗</span>
-        <span class="pb-name">HuggingFace</span>
-        <span class="pb-badge free-b">مجاني</span>
-      </button>
-      <button class="prov-btn" data-prov="mistral" onclick="selectProvider('mistral')">
-        <span class="pb-icon">🍃</span>
-        <span class="pb-name">Mistral</span>
-        <span class="pb-badge free-b">مجاني</span>
-      </button>
-      <button class="prov-btn" data-prov="together" onclick="selectProvider('together')">
-        <span class="pb-icon">🤝</span>
-        <span class="pb-name">Together</span>
-        <span class="pb-badge paid-b">مدفوع</span>
-      </button>
-    </div>
-
-    <!-- POLLINATIONS -->
-    <div class="prov-panel active" id="panel_pollinations">
-      <div class="field">
-        <label>النموذج <span style="color:var(--green);font-size:.6rem;">(بدون مفتاح API — مجاني تماماً)</span></label>
-        <select id="cfg_pol_model" onchange="saveConfig()">
-          <option value="openai">OpenAI GPT-4o Vision (الأقوى)</option>
-          <option value="openai-large">OpenAI Large (دقيق جداً)</option>
-          <option value="mistral">Mistral (سريع)</option>
-          <option value="qwen-coder">Qwen Coder (للكود)</option>
-        </select>
-        <small>✅ Pollinations.AI مجاني 100% — لا يتطلب حساباً أو مفتاحاً</small>
-      </div>
-      <div class="field">
-        <label>Pollinations seed (اختياري — للتشغيل الثابت)</label>
-        <input type="number" id="cfg_pol_seed" placeholder="مثال: 42" onchange="saveConfig()">
-      </div>
-    </div>
-
-    <!-- OPENROUTER -->
-    <div class="prov-panel" id="panel_openrouter">
-      <div class="field">
-        <label>مفتاح API لـ OpenRouter <span style="color:var(--green);font-size:.6rem;">(اختياري — نماذج مجانية)</span></label>
-        <div class="key-wrap" id="kw_openrouter">
-          <input type="password" id="cfg_or_key" placeholder="sk-or-..." oninput="saveKey('openrouter','cfg_or_key')">
-          <button class="key-eye" onclick="toggleEye('cfg_or_key',this)"><i class="fas fa-eye"></i></button>
-          <div class="key-saved"></div>
-        </div>
-        <small>احصل عليه من <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai</a> — كثير من النماذج مجانية بدون مفتاح</small>
-      </div>
-      <div class="field">
-        <label>النموذج</label>
-        <select id="cfg_or_model" onchange="saveConfig()">
-          <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Llama 3.2 11B Vision (مجاني ✅)</option>
-          <option value="meta-llama/llama-3.2-90b-vision-instruct:free">Llama 3.2 90B Vision (مجاني ✅)</option>
-          <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash Exp (مجاني ✅)</option>
-          <option value="qwen/qwen2-vl-72b-instruct:free">Qwen2-VL 72B (مجاني ✅)</option>
-          <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (مدفوع)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- GROQ -->
-    <div class="prov-panel" id="panel_groq">
-      <div class="field">
-        <label>مفتاح Groq API</label>
-        <div class="key-wrap" id="kw_groq">
-          <input type="password" id="cfg_groq_key" placeholder="gsk_..." oninput="saveKey('groq','cfg_groq_key')">
-          <button class="key-eye" onclick="toggleEye('cfg_groq_key',this)"><i class="fas fa-eye"></i></button>
-          <div class="key-saved"></div>
-        </div>
-        <small>من <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a> — مجاني: 30 طلب/دقيقة</small>
-      </div>
-      <div class="field">
-        <label>النموذج</label>
-        <select id="cfg_groq_model" onchange="saveConfig()">
-          <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision (الأفضل)</option>
-          <option value="llama-3.2-11b-vision-preview">Llama 3.2 11B Vision (أسرع)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- GEMINI -->
-    <div class="prov-panel" id="panel_gemini">
-      <div class="field">
-        <label>مفتاح Gemini API</label>
-        <div class="key-wrap" id="kw_gemini">
-          <input type="password" id="cfg_gem_key" placeholder="AIzaSy..." oninput="saveKey('gemini','cfg_gem_key')">
-          <button class="key-eye" onclick="toggleEye('cfg_gem_key',this)"><i class="fas fa-eye"></i></button>
-          <div class="key-saved"></div>
-        </div>
-        <small>من <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></small>
-      </div>
-      <div class="field">
-        <label>النموذج</label>
-        <select id="cfg_gem_model" onchange="saveConfig()">
-          <option value="gemini-2.0-flash">Gemini 2.0 Flash (الأحدث)</option>
-          <option value="gemini-1.5-flash">Gemini 1.5 Flash (سريع)</option>
-          <option value="gemini-1.5-pro">Gemini 1.5 Pro (دقيق)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- MISTRAL -->
-    <div class="prov-panel" id="panel_mistral">
-      <div class="field">
-        <label>مفتاح Mistral API</label>
-        <div class="key-wrap" id="kw_mistral">
-          <input type="password" id="cfg_mistral_key" placeholder="API Key..." oninput="saveKey('mistral','cfg_mistral_key')">
-          <button class="key-eye" onclick="toggleEye('cfg_mistral_key',this)"><i class="fas fa-eye"></i></button>
-          <div class="key-saved"></div>
-        </div>
-        <small>من <a href="https://console.mistral.ai/" target="_blank">console.mistral.ai</a></small>
-      </div>
-      <div class="field">
-        <label>النموذج</label>
-        <select id="cfg_mistral_model" onchange="saveConfig()">
-          <option value="pixtral-12b-2409">Pixtral 12B</option>
-          <option value="pixtral-large-latest">Pixtral Large</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- HUGGINGFACE -->
-    <div class="prov-panel" id="panel_huggingface">
-      <div class="field">
-        <label>مفتاح HuggingFace API</label>
-        <div class="key-wrap" id="kw_huggingface">
-          <input type="password" id="cfg_hf_key" placeholder="hf_..." oninput="saveKey('huggingface','cfg_hf_key')">
-          <button class="key-eye" onclick="toggleEye('cfg_hf_key',this)"><i class="fas fa-eye"></i></button>
-          <div class="key-saved"></div>
-        </div>
-        <small>من <a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co</a> — طبقة مجانية</small>
-      </div>
-      <div class="field">
-        <label>النموذج</label>
-        <select id="cfg_hf_model" onchange="saveConfig()">
-          <option value="Qwen/Qwen2-VL-7B-Instruct">Qwen2-VL 7B (موصى به)</option>
-          <option value="microsoft/Phi-3.5-vision-instruct">Phi-3.5 Vision</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- TOGETHER -->
-    <div class="prov-panel" id="panel_together">
-      <div class="field">
-        <label>مفتاح Together AI API</label>
-        <div class="key-wrap" id="kw_together">
-          <input type="password" id="cfg_tog_key" placeholder="رمز Together AI..." oninput="saveKey('together','cfg_tog_key')">
-          <button class="key-eye" onclick="toggleEye('cfg_tog_key',this)"><i class="fas fa-eye"></i></button>
-          <div class="key-saved"></div>
-        </div>
-        <small>من <a href="https://together.ai" target="_blank">together.ai</a></small>
-      </div>
-      <div class="field">
-        <label>النموذج</label>
-        <select id="cfg_tog_model" onchange="saveConfig()">
-          <option value="meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo">Llama 3.2 Vision 11B</option>
-          <option value="meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo">Llama 3.2 Vision 90B (أفضل)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- LANGUAGE & PROMPT -->
-    <div class="sec-label"><i class="fas fa-language"></i> اللغة والـ Prompt</div>
-    <div class="field">
-      <label>لغة النتائج</label>
-      <select id="cfg_lang" onchange="saveConfig()">
-        <option value="ar">العربية</option>
-        <option value="en">English</option>
-        <option value="both">كلاهما (AR + EN)</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>التعليمات الأساسية</label>
-      <textarea id="cfg_prompt" rows="3" onchange="saveConfig()">حلل الصورة واستخرج بيانات المنتج بالتفصيل. أعد JSON فقط باللغة العربية.</textarea>
-    </div>
-
-    <!-- TEMPLATE STRUCTURE -->
-    <div class="sec-label"><i class="fas fa-table"></i> هيكل البيانات المطلوب</div>
-    <div class="tpl-tabs">
-      <button class="tpl-tab active" id="tab_json" onclick="switchTplMode('json')"><i class="fas fa-code"></i> JSON مباشر</button>
-      <button class="tpl-tab" id="tab_csv" onclick="switchTplMode('csv')"><i class="fas fa-file-csv"></i> قالب CSV</button>
-    </div>
-    <div id="tpl_json_wrap">
-      <div class="field">
-        <label>هيكل JSON المطلوب</label>
-        <textarea id="cfg_json" rows="8" onchange="saveConfig()" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;">{
-  "الاسم": "اسم المنتج",
-  "الرمز": "كود المنتج",
-  "السعر": 0,
-  "الوصف_المختصر": "وصف قصير",
-  "الوصف_الكامل": "وصف تفصيلي",
-  "العنوان_التسويقي": "عنوان SEO",
-  "الوصف_التسويقي": "وصف SEO"
-}</textarea>
-      </div>
-    </div>
-    <div id="tpl_csv_wrap" style="display:none;">
-      <div class="field">
-        <label>رفع ملف CSV كقالب</label>
-        <div class="csv-drop" id="csvDrop" onclick="document.getElementById('csvFileInput').click()">
-          <i class="fas fa-file-csv"></i>
-          <span id="csvDropLabel">انقر أو اسحب ملف CSV هنا</span>
-          <input type="file" id="csvFileInput" accept=".csv,.tsv" style="display:none" onchange="handleCsvTemplate(event)">
-        </div>
-        <small>يجب أن يحتوي على صف رأس + صفوف مثال. سيُستخدم كقالب للـ AI.</small>
-      </div>
-      <div id="csvColsWrap" style="display:none;">
-        <div class="csv-cols" id="csvColTags"></div>
-        <div class="csv-sample" id="csvSampleBox"></div>
-      </div>
-    </div>
-
-    <!-- IMAGE SETTINGS -->
-    <div class="sec-label"><i class="fas fa-image"></i> إعدادات الصور</div>
-    <div class="field">
-      <label>مسار الصور على السيرفر</label>
-      <input type="text" id="cfg_path" value="catalog/products/" onchange="saveConfig()">
-    </div>
-    <div class="field">
-      <label>تسمية الصور</label>
-      <select id="cfg_naming" onchange="toggleNaming();saveConfig()">
-        <option value="original">الاسم الأصلي</option>
-        <option value="pattern">نمط مخصص</option>
-      </select>
-    </div>
-    <div class="field" id="namingPatternWrap" style="display:none;">
-      <label>النمط (استخدم {i} للترقيم)</label>
-      <input type="text" id="cfg_pattern" value="product_{i}" onchange="saveConfig()">
-    </div>
-
-    <!-- PROCESSING -->
-    <div class="sec-label"><i class="fas fa-sliders-h"></i> المعالجة</div>
-    <div class="field">
-      <label>عمليات متزامنة</label>
-      <select id="cfg_concurrent" onchange="saveConfig()">
-        <option value="1">1 ملف (آمن)</option>
-        <option value="2">2 ملفات</option>
-        <option value="3" selected>3 ملفات (موصى به)</option>
-        <option value="5">5 ملفات (سريع)</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>محاولات إعادة</label>
-      <select id="cfg_retries" onchange="saveConfig()">
-        <option value="0">بدون إعادة</option>
-        <option value="1">محاولة</option>
-        <option value="2" selected>محاولتان</option>
-        <option value="3">3 محاولات</option>
-      </select>
-    </div>
-    <div class="field">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="cfg_bgMode" onchange="saveConfig()" style="width:auto;accent-color:var(--glow);">
-        المعالجة في الخلفية
-      </label>
-    </div>
-
-    <!-- EXPORT -->
-    <div class="sec-label"><i class="fas fa-download"></i> تسمية التصدير</div>
-    <div class="field">
-      <input type="text" id="cfg_outRule" value="famelo_export_{date}" onchange="saveConfig()">
-    </div>
-
-  </div><!-- /sb-body -->
-
-  <div class="sb-foot">
-    <button class="btn btn-ghost" onclick="testConnection()" style="font-size:.78rem;">
-      <i class="fas fa-plug"></i> اختبار الاتصال
-    </button>
+  <div class="nav-links">
+    <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')"><i class="fas fa-th-large"></i> لوحة التحكم</button>
+    <button class="nav-item" data-tab="history" onclick="switchTab('history')"><i class="fas fa-history"></i> السجل والأرشيف</button>
+    <button class="nav-item" data-tab="workflows" onclick="switchTab('workflows')"><i class="fas fa-project-diagram"></i> قوالب العمل</button>
+    <button class="nav-item" data-tab="settings" onclick="switchTab('settings')"><i class="fas fa-cog"></i> الإعدادات</button>
   </div>
-</aside>
+</nav>
 
 <!-- ══════════════════════════════════
-     MAIN AREA
+     MAIN CONTENT
 ══════════════════════════════════ -->
-<main class="main">
+<main class="content-area">
 
-  <!-- STATS HEADER -->
-  <div class="stat-header">
-    <div class="stat-top">
-      <div class="stat-title">
-        <i class="fas fa-microchip" style="color:var(--glow);"></i>
-        <span id="statusTitle">جاهز للمعالجة</span>
+  <!-- DASHBOARD TAB -->
+  <section id="tab-dashboard" class="tab-content active">
+    <header class="tab-header">
+      <div class="header-info">
+        <h1>معالجة الصور الذكية</h1>
+        <p>قم برفع الصور وبدء التحليل الجماعي</p>
       </div>
-      <div class="provider-pill" id="provPill">
-        <div class="pulse"></div>
-        <span id="provPillText">— اختر مزوداً —</span>
-      </div>
-    </div>
-    <div class="stats-grid">
-      <div class="sbox s-info"><div class="slbl">الإجمالي</div><div class="sval" id="stat_total">0</div></div>
-      <div class="sbox s-ok"><div class="slbl">مكتمل</div><div class="sval" id="stat_done">0</div></div>
-      <div class="sbox s-warn"><div class="slbl">قيد التشغيل</div><div class="sval" id="stat_active">0</div></div>
-      <div class="sbox s-err"><div class="slbl">فشل</div><div class="sval" id="stat_error">0</div></div>
-    </div>
-    <div class="pbar-track"><div class="pbar-fill" id="progressBar"></div></div>
-    <div class="pbar-meta">
-      <span id="progressPct">0%</span>
-      <span id="progressLabel">في انتظار البدء...</span>
-    </div>
-    <div class="cur-task" id="curTask">
-      <i class="fas fa-spinner fa-spin"></i>
-      <span id="curTaskText">جاري المعالجة...</span>
-    </div>
-    <div class="ctrl-btns" id="ctrlBtns" style="display:none;">
-      <button class="btn btn-warning btn-sm" id="btnPause" onclick="pauseProcessing()"><i class="fas fa-pause"></i> إيقاف مؤقت</button>
-      <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopProcessing()"><i class="fas fa-stop"></i> إيقاف كامل</button>
-    </div>
-  </div>
-    <!-- START BUTTON -->
-  <button class="btn btn-primary" id="btnStart" onclick="startWorkflow()">
-    <i class="fas fa-play"></i> بدء المعالجة
-  </button>
-  <!-- DROP ZONE -->
-  <div class="drop-zone" id="dropZone"
-    ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
-    onclick="document.getElementById('fileInput').click()">
-    <i class="fas fa-cloud-upload-alt dz-icon"></i>
-    <div class="dz-title">اسحب الصور هنا أو انقر للاختيار</div>
-    <div class="dz-sub">PNG · JPG · WEBP · حتى 100 صورة</div>
-    <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
-  </div>
-
-  <!-- IMAGE GRID -->
-  <div class="img-grid" id="imageGrid"></div>
-
-  <!-- EXPORT PANEL -->
-  <div class="export-panel" id="exportPanel">
-    <div class="export-panel-head"><i class="fas fa-check-circle"></i> اكتملت المعالجة — تصدير النتائج</div>
-    <div class="export-row">
-      <div class="field"><label>اسم الملف</label><input type="text" id="final_name" value="famelo_export"></div>
-      <div class="field">
-        <label>الصيغة</label>
-        <select id="final_type">
-          <option value="xlsx">Excel (.xlsx)</option>
-          <option value="csv">CSV (.csv)</option>
-          <option value="json">JSON (.json)</option>
+      <div class="header-actions">
+        <select id="activeProvider" class="form-select bg-dark border-secondary text-white">
+            <option value="gemini">Gemini</option>
+            <option value="groq">Groq</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="mistral">Mistral</option>
+            <option value="together">Together AI</option>
+            <option value="pollinations">Pollinations</option>
+            <option value="huggingface">HuggingFace</option>
         </select>
+        <select id="activeWorkflow" onchange="loadWorkflow(this.value)">
+           <!-- Workflows loaded via JS -->
+        </select>
+        <button class="btn btn-primary" id="btnStart" onclick="startWorkflow()">
+          <i class="fas fa-play"></i> بدء المعالجة
+        </button>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon s-blue"><i class="fas fa-images"></i></div>
+          <div class="stat-meta">
+            <span class="stat-label">الإجمالي</span>
+            <span class="stat-value" id="stat_total">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon s-green"><i class="fas fa-check-double"></i></div>
+          <div class="stat-meta">
+            <span class="stat-label">مكتمل</span>
+            <span class="stat-value" id="stat_done">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon s-warn"><i class="fas fa-spinner fa-spin"></i></div>
+          <div class="stat-meta">
+            <span class="stat-label">قيد التشغيل</span>
+            <span class="stat-value" id="stat_active">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon s-red"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="stat-meta">
+            <span class="stat-label">فشل</span>
+            <span class="stat-value" id="stat_error">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-upload-zone">
+        <div class="drop-zone" id="dropZone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" onclick="document.getElementById('fileInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <h3>اسحب الصور هنا أو انقر للاختيار</h3>
+          <p>يدعم PNG, JPG, WEBP • معالجة دفعية حتى 100 صورة</p>
+          <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+        </div>
+      </div>
+
+      <div class="active-batch-area">
+        <div class="area-head">
+          <h3>الدفعة الحالية</h3>
+          <div class="batch-controls" style="display:none;" id="batchControls">
+            <button class="btn btn-sm" id="btnPause" onclick="pauseProcessing()"><i class="fas fa-pause"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="stopProcessing()"><i class="fas fa-stop"></i></button>
+          </div>
+        </div>
+        <div class="img-grid" id="imageGrid"></div>
+      </div>
+
+        <div class="log-panel-area mt-8">
+            <div class="area-head"><h3>سجل العمليات (Live Logs)</h3></div>
+            <div id="ui_logger" class="ui-logger bg-dark border border-secondary rounded p-4 h-48 overflow-y-auto font-mono text-xs"></div>
+        </div>
+    </div>
+  </section>
+
+  <!-- HISTORY TAB -->
+  <section id="tab-history" class="tab-content">
+    <header class="tab-header">
+      <h1>سجل العمليات</h1>
+      <div class="header-actions">
+         <button class="btn btn-secondary" onclick="exportResults()"><i class="fas fa-download"></i> تصدير النتائج</button>
+      </div>
+    </header>
+    <div class="history-container">
+      <div class="search-bar">
+        <input type="text" id="historySearch" placeholder="بحث في النتائج..." oninput="filterHistory()">
+      </div>
+      <table class="pro-table">
+        <thead>
+          <tr>
+            <th>الصورة</th>
+            <th>الاسم الأصلي</th>
+            <th>المزود</th>
+            <th>التاريخ</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- WORKFLOWS TAB -->
+  <section id="tab-workflows" class="tab-content">
+    <header class="tab-header">
+      <h1>قوالب العمل (Workflows)</h1>
+      <button class="btn btn-primary" onclick="showWorkflowModal()"><i class="fas fa-plus"></i> قالب جديد</button>
+    </header>
+    <div class="workflows-grid" id="workflowsGrid"></div>
+  </section>
+
+  <!-- SETTINGS TAB -->
+  <section id="tab-settings" class="tab-content">
+    <header class="tab-header"><h1>الإعدادات الاحترافية</h1></header>
+    <div class="settings-container">
+      <div class="settings-card">
+        <h3><i class="fas fa-key"></i> مفاتيح API (تخزن في السيرفر)</h3>
+        <div class="settings-grid">
+           <div class="field"><label>Gemini API Key</label><input type="password" id="set_gemini_key"></div>
+           <div class="field"><label>Groq API Key</label><input type="password" id="set_groq_key"></div>
+           <div class="field"><label>OpenRouter API Key</label><input type="password" id="set_openrouter_key"></div>
+           <div class="field"><label>Mistral API Key</label><input type="password" id="set_mistral_key"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveServerSettings()">حفظ الإعدادات</button>
       </div>
     </div>
-    <button class="btn btn-success" onclick="generateAndDownload()" style="margin-top:12px;">
-      <i class="fas fa-download"></i> تحميل الملف
-    </button>
-  </div>
-
-  <!-- LOGS -->
-  <div class="logs-panel">
-    <div class="logs-head">
-      <div class="logs-head-left"><i class="fas fa-terminal" style="color:var(--glow);"></i> سجل العمليات</div>
-      <div class="logs-btns">
-        <button class="log-btn" onclick="exportLogs()"><i class="fas fa-download"></i> تصدير</button>
-        <button class="log-btn" onclick="clearLogs()"><i class="fas fa-trash"></i> مسح</button>
-      </div>
-    </div>
-    <div id="log-area"></div>
-  </div>
-
-
+  </section>
 
 </main>
 
 <!-- DETAIL MODAL -->
 <div class="modal" id="modal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box">
+  <div class="modal-box pro-modal">
     <div class="modal-head">
-      <h3><i class="fas fa-info-circle" style="color:var(--glow);"></i> تفاصيل المنتج</h3>
-      <button class="modal-close" onclick="document.getElementById('modal').style.display='none'"><i class="fas fa-times"></i></button>
+      <h3><i class="fas fa-chart-pie"></i> تفاصيل التحليل</h3>
+      <div class="flex gap-2">
+        <button class="btn btn-sm btn-secondary" onclick="copyResult()"><i class="fas fa-copy"></i> نسخ JSON</button>
+        <button class="modal-close" onclick="document.getElementById('modal').style.display='none'"><i class="fas fa-times"></i></button>
+      </div>
     </div>
-    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-body" id="modalBody">
+       <div class="split-view">
+          <div class="preview-img"><img id="previewImg" src=""></div>
+          <div class="result-data" id="resultData"></div>
+       </div>
+    </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     JAVASCRIPT
-══════════════════════════════════ -->
-<script src="script.js" type="text/javascript" charset="utf-8"></script>
+<!-- WORKFLOW MODAL -->
+<div class="modal" id="workflowModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box pro-modal" style="height: auto; max-width: 600px;">
+        <div class="modal-head">
+            <h3><i class="fas fa-project-diagram"></i> إضافة قالب جديد</h3>
+            <button class="modal-close" onclick="document.getElementById('workflowModal').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>اسم القالب</label>
+                <input type="text" id="wf_name" placeholder="مثلاً: استخراج بيانات الفاتورة">
+            </div>
+            <div class="field">
+                <label>البرومبت (Prompt)</label>
+                <textarea id="wf_prompt" rows="4" placeholder="اكتب تعليمات الـ AI هنا..."></textarea>
+            </div>
+            <div class="field">
+                <label>هيكل البيانات (JSON Structure)</label>
+                <textarea id="wf_structure" rows="6" class="font-mono" placeholder='{"title": "string", "price": "number"}'></textarea>
+            </div>
+            <div style="text-align: left; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="document.getElementById('workflowModal').style.display='none'">إلغاء</button>
+                <button class="btn btn-primary" onclick="saveNewWorkflow()">حفظ القالب</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="ImageOptimizer.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
